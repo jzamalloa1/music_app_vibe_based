@@ -1,0 +1,26 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+
+# IDE files
+.vscode/
+.idea/
+.cursor/
+
+# OS generated files
+.DS_Store
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Database Files
+music_app.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log

@@ -1,0 +1,637 @@
+/* Basic Reset & Variables (optional but good) */
+:root {
+    /* Dark theme by default based on image */
+    --primary-bg: #121212; /* Very dark grey/black */
+    --secondary-bg: #181818; /* Slightly lighter grey */
+    --card-bg: #282828;    /* Card background */
+    --primary-text: #ffffff;
+    --secondary-text: #b3b3b3; /* Lighter grey text */
+    --header-bg: #0a0a0a; /* Slightly darker than primary */
+    --footer-bg: #181818;
+    /* --accent-color: #1DB954; */ /* Example: Spotify green, adjust as needed */
+    --accent-color: #ffffff; /* Use white for hover/active states */
+    --border-color: #282828;
+    --link-color: #ffffff;
+    --link-hover-color: #b3b3b3;
+
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Light Theme Variables */
+body.light-theme {
+    --primary-bg: #ffffff;
+    --secondary-bg: #f4f4f4;
+    --card-bg: #ffffff;
+    --primary-text: #181818;
+    --secondary-text: #535353;
+    --header-bg: #ffffff;
+    --footer-bg: #f4f4f4;
+    --accent-color: #1a1a1a; /* Dark text for light mode accent */
+    --border-color: #e1e1e1;
+    --link-color: #181818;
+    --link-hover-color: #535353;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+}
+
+body {
+    background-color: var(--primary-bg);
+    color: var(--primary-text);
+    /* display: flex; */ /* Removed - Not needed as app-container handles layout */
+    /* min-height: 100vh; */ /* Removed - app-container handles height */
+}
+
+.app-container {
+    display: grid;
+    grid-template-columns: 1fr; /* Single column */
+    grid-template-rows: auto 1fr auto; /* Header height, main content takes space, footer height */
+    grid-template-areas:
+        "header"
+        "main"
+        "footer";
+    width: 100%;
+    height: 100vh; /* Full viewport height */
+    background-color: var(--primary-bg); /* Apply main background here */
+}
+
+/* Remove Sidebar Styles */
+/* 
+.sidebar {
+    grid-area: sidebar;
+    ...
+}
+*/
+
+/* App Header Styles */
+.app-header {
+    grid-area: header;
+    background-color: var(--header-bg);
+    padding: 0 2rem; /* Increase horizontal padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px; /* Slightly taller header */
+    border-bottom: 1px solid var(--border-color);
+}
+
+.main-nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem; /* Increase nav gap */
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: var(--secondary-text); /* Dimmer text for nav links */
+    font-weight: 600; /* Slightly bolder */
+    font-size: 0.95rem; /* Slightly larger */
+    padding: 0.5rem 0;
+}
+
+.main-nav a.active,
+.main-nav a:hover {
+    color: var(--primary-text);
+    /* Add slight scale or other effect if desired */
+}
+
+/* Position search icon inside input */
+.search-container {
+    position: relative;
+    flex-grow: 0.5; /* Allow search to take some space */
+    max-width: 350px; /* Limit search width */
+}
+
+.search-container input {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 0.6rem 1rem 0.6rem 2.5rem; /* Adjust padding slightly */
+    color: var(--primary-text);
+    /* min-width: 300px; */ /* Remove min-width, use flex-grow */
+    width: 100%; /* Take full width of container */
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary-text);
+}
+
+.search-container input::placeholder {
+    color: var(--secondary-text);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Increase gap */
+}
+
+/* Style user profile button */
+.user-profile-button {
+    background-color: var(--card-bg); /* Or accent color */
+    color: var(--secondary-text);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease; /* Add transition */
+}
+
+.user-profile-button:hover {
+    color: var(--primary-text);
+    transform: scale(1.1); /* Add subtle scale */
+}
+
+.user-profile span {
+    background-color: var(--accent-color); /* Or other color */
+    color: var(--primary-text);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Adjust theme toggle button if needed */
+.user-profile button#theme-toggle {
+    background: none;
+    /* border: 1px solid var(--secondary-text); */
+    border: none; /* Remove border */
+    color: var(--secondary-text);
+    /* padding: 0.3rem 0.6rem; */
+    padding: 0; /* Remove padding */
+    border-radius: 4px;
+    cursor: pointer;
+    /* font-size: 0.8rem; */
+    font-size: 1rem; /* Make icon slightly larger */
+    transition: color 0.2s ease, transform 0.2s ease; /* Add transition */
+}
+
+.user-profile button#theme-toggle:hover {
+    /* border-color: var(--primary-text); */
+    color: var(--primary-text);
+    transform: scale(1.1); /* Add subtle scale */
+}
+
+/* Main Content Styles */
+.main-content {
+    grid-area: main;
+    padding: 2rem 2rem; /* Increase top padding */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+    background-color: var(--primary-bg); /* Match app background */
+}
+
+.main-content-columns {
+    /* display: flex; */ /* Switch to Grid */
+    display: grid;
+    /* grid-template-columns: 1fr 320px; */ /* Left column takes remaining space, right is fixed */
+    grid-template-columns: 1fr 384px; /* Increase right column width */
+    gap: 2rem; /* Space between columns */
+    /* width: 100%; */ /* Width should be handled by grid context */
+    align-items: start; /* Align items to the top of their grid area */
+}
+
+.left-column {
+    /* flex: 1; */ /* Remove flex property */
+    min-width: 0; /* Prevent overflow issues - still good practice */
+}
+
+.right-column {
+    /* flex-basis: 320px; */ /* Width is set by grid-template-columns */
+    /* flex-shrink: 0; */ /* Not needed for Grid */
+    display: flex; /* Keep flex for internal stacking */
+    flex-direction: column;
+    gap: 2rem; /* Space between large cards */
+}
+
+.large-card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.8rem; /* Increase padding */
+}
+
+.large-card img {
+    width: 100%;
+    height: auto; /* Adjust as needed, maybe fixed height? */
+    max-height: 240px; /* Increase max-height */
+    object-fit: cover;
+    border-radius: 4px;
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+}
+
+.large-card h3 {
+    font-size: 1.1rem; /* Increase size */
+    color: var(--secondary-text);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+.large-card h4 {
+    font-size: 1.4rem; /* Increase size */
+    color: var(--primary-text);
+    margin-bottom: 0.6rem;
+}
+
+.large-card p {
+    font-size: 1rem; /* Increase size */
+    color: var(--secondary-text);
+    margin-bottom: 1.2rem;
+}
+
+.large-card button {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
+    padding: 0.6rem 1.2rem; /* Increase padding */
+    border-radius: 24px; /* Increase border-radius */
+    cursor: pointer;
+    font-weight: 600; /* Increase font-weight */
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease; /* Add transition */
+}
+
+.large-card button:hover {
+    background-color: #3a3a3a;
+    border-color: #535353;
+}
+
+/* Remove Old Header styles */
+/*
+.main-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+*/
+
+/* Playback Footer Styles */
+.playback-footer {
+    grid-area: footer;
+    background-color: var(--footer-bg);
+    color: var(--primary-text);
+    height: 90px; /* Adjust height to match image */
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem; /* Add horizontal padding */
+}
+
+/* Now Playing Section */
+.now-playing {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 200px; /* Ensure some space */
+    flex-basis: 30%; /* Take up roughly 30% */
+}
+
+.now-playing-art {
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.now-playing-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.now-playing-info .track-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--primary-text);
+}
+
+.now-playing-info .track-artist {
+    font-size: 0.75rem;
+    color: var(--secondary-text);
+}
+
+/* Player Controls Section (Middle) */
+.player-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-basis: 40%; /* Take up roughly 40% */
+}
+
+.control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.control-button {
+    background: none;
+    border: none;
+    color: var(--secondary-text);
+    font-size: 1rem; /* Default icon size */
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease; /* Add transition */
+}
+
+.control-button:hover {
+    color: var(--primary-text);
+    /* transform: scale(1.1); */ /* Optional scale on hover */
+}
+
+/* Active state for Shuffle/Repeat */
+.control-button.active {
+    color: var(--accent-color); /* Or a specific accent color if defined */
+}
+
+.control-button.play-pause {
+    font-size: 1.2rem; /* Slightly smaller icon in bg */
+    background-color: var(--primary-text);
+    color: var(--primary-bg);
+    border-radius: 50%;
+    width: 32px; /* Make slightly smaller */
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease; /* Add transition */
+}
+
+.control-button.play-pause:hover {
+    transform: scale(1.05);
+    background-color: #f0f0f0; /* Keep hover effect */
+}
+
+.progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 400px; /* Limit progress bar width */
+}
+
+.progress-bar-container span {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+}
+
+.progress-bar {
+    flex-grow: 1;
+    height: 4px;
+    background-color: #535353; /* Darker grey background */
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative; /* Needed for pseudo-element */
+}
+
+/* Add a hover target */
+.progress-bar::before {
+    content: '';
+    position: absolute;
+    top: -4px; /* Extend clickable area vertically */
+    bottom: -4px;
+    left: 0;
+    right: 0;
+}
+
+.progress-bar-inner {
+    height: 100%;
+    background-color: var(--secondary-text); /* Use secondary text color */
+    border-radius: 2px;
+    transition: width 0.1s linear, background-color 0.2s ease; /* Add transition */
+}
+
+.progress-bar:hover .progress-bar-inner {
+    background-color: var(--accent-color); /* Use white/accent on hover */
+}
+
+/* Other Controls Section (Right) */
+.other-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: flex-end;
+    min-width: 200px; /* Ensure some space */
+    flex-basis: 30%; /* Take up roughly 30% */
+}
+
+.volume-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.volume-bar {
+    width: 80px; /* Example width */
+    height: 4px;
+    background-color: #535353;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add a hover target */
+.volume-bar::before {
+    content: '';
+    position: absolute;
+    top: -4px; /* Extend clickable area vertically */
+    bottom: -4px;
+    left: 0;
+    right: 0;
+}
+
+.volume-bar-inner {
+    height: 100%;
+    width: 60%; /* Example volume */
+    background-color: var(--secondary-text);
+    border-radius: 2px;
+    transition: width 0.1s linear, background-color 0.2s ease; /* Add transition */
+}
+
+.volume-bar:hover .volume-bar-inner {
+    background-color: var(--accent-color);
+}
+
+/* Content Grid Styles */
+.content-grid {
+    margin-bottom: 2.5rem; /* Increase bottom margin */
+    width: 100%; /* Explicitly set width */
+}
+
+.content-grid h2 {
+    font-size: 1.75rem; /* Larger section titles */
+    font-weight: 700; /* Bolder titles */
+    margin-bottom: 1.25rem;
+    color: var(--primary-text);
+}
+
+/* Header for sections like "Featured Artists" */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem; /* Match h2 margin */
+    width: 100%; /* Ensure header takes full width */
+}
+
+.section-header h3 {
+     font-size: 1.75rem; /* Match h2 size */
+     font-weight: 700; /* Match h2 weight */
+     margin: 0;
+}
+
+.section-header .see-all {
+    color: var(--secondary-text);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase; /* Uppercase See All */
+}
+
+.section-header .see-all:hover {
+    text-decoration: underline;
+}
+
+.grid-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem; /* Increase gap */
+}
+
+.grid-card {
+    background-color: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    /* display: flex; */ /* Remove flex, let content flow */
+    /* align-items: center; */
+    /* justify-content: center; */
+    min-height: 100px; /* Placeholder height */
+    transition: background-color 0.3s ease, transform 0.3s ease; /* Add transform transition */
+    text-decoration: none; /* If cards become links */
+    color: var(--primary-text);
+}
+
+.grid-card:hover {
+    background-color: #3a3a3a; /* Slightly lighter on hover */
+    transform: scale(1.03); /* Add scale effect */
+}
+
+/* For You / Browse Cards */
+.grid-card img {
+    width: 100%;
+    /* height: auto; */ /* Let height be determined by aspect ratio/container */
+    height: 180px; /* Set a fixed height for consistency */
+    object-fit: cover; /* Ensure image covers the area without distortion */
+    border-radius: 4px; /* Slightly rounded corners for images */
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.grid-card span {
+    font-weight: 600; /* Slightly bolder card titles */
+    font-size: 1rem; /* Slightly larger card titles */
+}
+
+/* Featured Artist Cards */
+.artist-grid {
+     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Smaller cards */
+}
+
+.artist-card {
+    background-color: transparent; /* Make background transparent */
+    padding: 0; /* Remove padding */
+    text-align: center;
+}
+
+.artist-card:hover {
+    background-color: transparent; /* No hover effect for artist cards */
+    transform: none; /* Override grid-card hover */
+}
+
+.artist-card .artist-image {
+    width: 100%; /* Make image take full width */
+    max-width: 150px; /* Max width */
+    height: 150px; /* Make height same as width for circle */
+    object-fit: cover; /* Ensure image covers the area */
+    border-radius: 50%; /* Circular images */
+    margin-bottom: 0.75rem;
+    margin-left: auto; /* Center the image if grid column is wider */
+    margin-right: auto;
+}
+
+.artist-card .artist-name {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    color: var(--primary-text);
+    font-size: 1rem; /* Larger artist name */
+}
+
+.artist-card .artist-followers {
+    display: block;
+    color: var(--secondary-text);
+    font-size: 0.8rem;
+}
+
+/* Playback footer image */
+.now-playing-art {
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+/* Remove/Adjust old #artists-section styling if conflicting */
+/* 
+#artists-section {
+    padding: 1rem;
+    margin: 1rem 0;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    border: none;
+}
+*/
+
+/* We already use .section-header now */
+/* 
+#artists-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+*/
+
+/* Remove old #artists-list styles */
+#artists-list {
+    list-style: none;
+    padding: 0; /* Remove default ul padding */
+    /* We will style this better later to match image */
+}
+
+/* Remove old li styles */
+/* 
+#artists-list li {
+    padding: 0.25rem 0;
+    color: var(--secondary-text);
+}
+*/
+
+/* Remove old conflicting styles */
