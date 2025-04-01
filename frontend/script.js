@@ -10,6 +10,10 @@ const formatTime = (ms) => {
 
 // --- Global Variables for Audio Playback ---
 let currentTrackId = null;
+let playbackQueue = []; // Array to hold track IDs
+let currentQueueIndex = -1; // Index of the currently playing track in the queue
+let currentPlaylistId = null; // Add this to track the current playlist
+
 // We need references to UI elements globally if loadAndPlayTrack is global
 const audioPlayer = document.getElementById('audio-player');
 const nowPlayingArt = document.querySelector('.now-playing-art');
@@ -22,15 +26,53 @@ const timeTotal = document.querySelector('.time-total');
 const playPauseButton = document.querySelector('.control-button.play-pause');
 const playPauseIcon = playPauseButton ? playPauseButton.querySelector('i') : null;
 
+// Function to update playlist card visuals
+function updatePlaylistVisuals(playlistId) {
+    // Remove 'now-playing' class from all playlist cards
+    document.querySelectorAll('.grid-card').forEach(card => {
+        card.classList.remove('now-playing');
+        // Remove any existing playing indicator
+        const indicator = card.querySelector('.playing-indicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    });
+
+    // Add 'now-playing' class and indicator to current playlist
+    if (playlistId) {
+        const currentCard = document.querySelector(`[data-playlist-id="${playlistId}"]`);
+        if (currentCard) {
+            currentCard.classList.add('now-playing');
+            // Add playing indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'playing-indicator';
+            indicator.innerHTML = '<i class="fas fa-volume-up"></i> Playing';
+            currentCard.appendChild(indicator);
+        }
+    }
+}
+
 // --- Main Audio Loading Function ---
 // Function to load and play a track
 async function loadAndPlayTrack(trackId) {
-    // Check if elements exist (might not if script runs before DOM is fully ready, 
-    // though DOMContentLoaded should prevent this. Good practice anyway.)
+    console.log('loadAndPlayTrack called with trackId:', trackId);
+    
+    // Check if elements exist
     if (!audioPlayer || !nowPlayingArt || !nowPlayingTitle || !nowPlayingArtist) {
-        console.error('Required audio UI elements not found! Cannot load track.');
+        console.error('Required audio UI elements not found:', {
+            audioPlayer: !!audioPlayer,
+            nowPlayingArt: !!nowPlayingArt,
+            nowPlayingTitle: !!nowPlayingTitle,
+            nowPlayingArtist: !!nowPlayingArtist
+        });
         return;
     }
+
+    // Stop any current playback
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+    audioPlayer.src = '';
+
     try {
         console.log(`Fetching track ${trackId}...`);
         const response = await fetch(`/api/track/${trackId}`);
@@ -38,9 +80,10 @@ async function loadAndPlayTrack(trackId) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const trackData = await response.json();
-        console.log('Track data:', trackData);
+        console.log('Track data received:', trackData);
 
         // Update Now Playing UI
+        console.log('Updating UI with track data...');
         nowPlayingArt.src = trackData.album_art_url || 'https://via.placeholder.com/56';
         nowPlayingArt.alt = trackData.album_title || 'Unknown Album';
         nowPlayingTitle.textContent = trackData.title;
@@ -50,21 +93,115 @@ async function loadAndPlayTrack(trackId) {
         if(progressBar) progressBar.style.width = '0%';
 
         // Load and play audio
-        audioPlayer.src = trackData.file_path;
-        // Use a promise to ensure play starts after loading is possible
-        await audioPlayer.play().catch(e => console.error("Error playing audio:", e));
-        currentTrackId = trackId;
+        console.log('Loading audio from:', trackData.file_path);
+        
+        // Create a new Audio element for this track
+        const tempAudio = new Audio();
+        tempAudio.crossOrigin = "anonymous";
+        
+        // Set up promise to check if audio can be loaded
+        const canPlayPromise = new Promise((resolve, reject) => {
+            tempAudio.addEventListener('canplaythrough', () => {
+                console.log('Test audio can play through');
+                resolve();
+            }, { once: true });
+            
+            tempAudio.addEventListener('error', (e) => {
+                console.error('Test audio loading error:', tempAudio.error);
+                reject(new Error(`Audio loading failed: ${tempAudio.error?.message || 'Unknown error'}`));
+            }, { once: true });
+        });
 
-        // Update play/pause button state
-        if(playPauseIcon && playPauseButton){
-             playPauseIcon.classList.remove('fa-play');
-             playPauseIcon.classList.add('fa-pause');
-             playPauseButton.setAttribute('title', 'Pause');
+        // Try to load the audio
+        tempAudio.src = trackData.file_path;
+        
+        try {
+            // Wait for the test audio to be playable
+            await canPlayPromise;
+            console.log('Audio file verified, setting up main player');
+            
+            // If we get here, the audio is loadable, so set it to the main player
+            audioPlayer.src = trackData.file_path;
+            
+            // Try to play
+            await audioPlayer.play();
+            console.log('Audio playback started successfully');
+            
+            currentTrackId = trackId;
+
+            // Update play/pause button state
+            if(playPauseIcon && playPauseButton){
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
+                playPauseButton.setAttribute('title', 'Pause');
+            }
+        } catch (playError) {
+            console.error("Error playing audio:", playError);
+            if (playError.name === 'NotAllowedError') {
+                console.log('Playback was prevented by browser autoplay policy');
+            } else if (playError.name === 'NotSupportedError') {
+                console.log('Audio format not supported');
+            }
+            throw playError;
         }
 
     } catch (error) {
         console.error(`Error loading track ${trackId}:`, error);
-        // Optionally display error in UI
+        // Log the full error details
+        console.log('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        
+        // Clear the player state
+        audioPlayer.src = '';
+        if(playPauseIcon && playPauseButton){
+            playPauseIcon.classList.remove('fa-pause');
+            playPauseIcon.classList.add('fa-play');
+            playPauseButton.setAttribute('title', 'Play');
+        }
+    }
+}
+
+// --- New Function to Load Queue and Start Playback ---
+async function loadQueueAndPlay(playlistId) {
+    console.log('loadQueueAndPlay called with playlistId:', playlistId);
+    try {
+        // Update visuals first
+        currentPlaylistId = playlistId;
+        updatePlaylistVisuals(playlistId);
+
+        console.log(`Fetching tracks for playlist ${playlistId}...`);
+        const response = await fetch(`/api/playlist/${playlistId}/tracks`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const trackIds = await response.json();
+        console.log(`Queue loaded with tracks:`, trackIds);
+
+        if (trackIds && trackIds.length > 0) {
+            playbackQueue = trackIds;
+            currentQueueIndex = 0;
+            console.log('Starting playback with first track:', playbackQueue[currentQueueIndex]);
+            await loadAndPlayTrack(playbackQueue[currentQueueIndex]);
+        } else {
+            console.log('Playlist is empty or failed to load tracks.');
+            playbackQueue = [];
+            currentQueueIndex = -1;
+            currentPlaylistId = null;
+            updatePlaylistVisuals(null);
+        }
+    } catch (error) {
+        console.error(`Error loading queue for playlist ${playlistId}:`, error);
+        console.log('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+        // Clear current playlist on error
+        currentPlaylistId = null;
+        updatePlaylistVisuals(null);
     }
 }
 
@@ -303,49 +440,64 @@ async function fetchArtists() {
 
 // --- Function to fetch "For You" Playlists ---
 async function fetchForYouPlaylists() {
-     const forYouContainer = document.querySelector('#for-you .grid-items');
-     if (!forYouContainer) {
-         console.error('For You container not found!');
-         return;
-     }
- 
-     try {
-         console.log('Fetching For You playlists from /api/playlists/for-you...');
-         const response = await fetch('/api/playlists/for-you');
-         if (!response.ok) {
-             throw new Error(`HTTP error! status: ${response.status}`);
-         }
-         const playlists = await response.json();
-         console.log('For You playlists received:', playlists);
- 
-         // Clear existing placeholder cards (if any)
-         forYouContainer.innerHTML = ''; 
- 
-         if (playlists.length === 0) {
-             forYouContainer.innerHTML = '<p>Nothing here for you yet.</p>';
-         } else {
-             playlists.forEach((playlist, index) => {
-                 const playlistCard = document.createElement('div');
-                 playlistCard.classList.add('grid-card', 'for-you-card');
-                 
-                 playlistCard.innerHTML = `
-                     <img src="${playlist.image_url}" alt="${playlist.name}">
-                     <span>${playlist.name}</span>
-                 `;
-                 // TEST: Add click handler to load a sample track
-                 if (index === 0) { // Add to first card only for now
-                      playlistCard.style.cursor = 'pointer';
-                      // Now calls the globally scoped function
-                      playlistCard.onclick = () => loadAndPlayTrack(1); // Load track 1
-                 }
-                 
-                 forYouContainer.appendChild(playlistCard);
-             });
-         }
- 
-     } catch (error) {
-         console.error('Error fetching For You playlists:', error);
-         forYouContainer.innerHTML = '<p>Error loading recommendations.</p>';
-     }
- }
- // -------------------------------------------------
+    try {
+        const response = await fetch('/api/playlists/for-you');
+        const playlists = await response.json();
+        
+        const gridItems = document.querySelector('#for-you .grid-items');
+        gridItems.innerHTML = ''; // Clear loading message
+        
+        playlists.forEach(playlist => {
+            const card = document.createElement('div');
+            card.className = 'grid-card for-you-card';
+            card.setAttribute('data-playlist-id', playlist.id);  // Add this line
+            
+            const img = document.createElement('img');
+            img.src = playlist.image_url || `https://picsum.photos/seed/${playlist.title}/180/180`;
+            img.alt = playlist.title;
+            
+            const span = document.createElement('span');
+            span.textContent = playlist.title;
+            
+            card.appendChild(img);
+            card.appendChild(span);
+            
+            // Add click handler
+            card.onclick = () => loadQueueAndPlay(playlist.id);
+            
+            gridItems.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Error fetching For You playlists:', error);
+    }
+}
+
+// Add styles for the playing indicator
+const style = document.createElement('style');
+style.textContent = `
+    .grid-card {
+        position: relative;
+    }
+    .grid-card.now-playing {
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    .playing-indicator {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .playing-indicator i {
+        color: #1DB954;
+    }
+`;
+document.head.appendChild(style);
+
+// -------------------------------------------------

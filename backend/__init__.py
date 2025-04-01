@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_from_directory
 import os
 
 # Import extensions and models
@@ -14,7 +14,13 @@ def create_app(config_object=None):
     """Application factory"""
     app = Flask(__name__,
                 template_folder='../frontend',
-                static_folder='../frontend')
+                static_folder='../frontend',
+                static_url_path='/frontend')  # Add explicit static URL path
+
+    # Register a second static folder for backend static files
+    @app.route('/static/audio/<path:filename>')
+    def serve_audio(filename):
+        return send_from_directory(os.path.join(basedir, 'static', 'audio'), filename)
 
     # Load configuration (if any)
     # app.config.from_object(config_object)
@@ -118,6 +124,23 @@ def create_app(config_object=None):
             return jsonify({"error": "Could not retrieve track details"}), 500
     # ------------------------------------
 
+    # --- API Endpoint for Playlist Tracks ---
+    @app.route('/api/playlist/<int:playlist_id>/tracks')
+    def get_playlist_tracks(playlist_id):
+        try:
+            playlist = db.session.get(Playlist, playlist_id)
+            if not playlist:
+                 return jsonify({"error": "Playlist not found"}), 404
+            
+            # Get IDs of tracks in the playlist, preserving order if possible (depends on relationship config)
+            track_ids = [track.id for track in playlist.tracks]
+            
+            return jsonify(track_ids)
+        except Exception as e:
+            print(f"Error querying playlist tracks {playlist_id}: {e}")
+            return jsonify({"error": "Could not retrieve playlist tracks"}), 500
+    # ------------------------------------
+
     # Create database tables within app context
     with app.app_context():
         db.create_all()
@@ -140,16 +163,55 @@ def create_app(config_object=None):
             db.session.add_all([album1, album2, album3])
             db.session.commit() # Commit albums to get IDs
 
-            # Tracks
-            # Use a real MP3 URL for testing playback
-            sample_audio_url = "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
-            track1 = Track(title="Sample Song A", artist_id=artist1.id, album_id=album1.id, duration_ms=180000, file_path=sample_audio_url)
-            track2 = Track(title="Sample Song B", artist_id=artist1.id, album_id=album1.id, duration_ms=210000, file_path=sample_audio_url)
-            track3 = Track(title="Flow State", artist_id=artist2.id, album_id=album2.id, duration_ms=300000, file_path=sample_audio_url)
-            track4 = Track(title="Synthwave Drive", artist_id=artist2.id, album_id=album2.id, duration_ms=240000, file_path=sample_audio_url)
-            track5 = Track(title="Quiet Corner", artist_id=artist3.id, album_id=album3.id, duration_ms=150000, file_path=sample_audio_url)
-            track6 = Track(title="Lost & Found", artist_id=artist3.id, duration_ms=190000, file_path=sample_audio_url) # No album
-            db.session.add_all([track1, track2, track3, track4, track5, track6])
+            # Sample tracks with different audio files
+            tracks = [
+                Track(
+                    title="Sunset Cruising",
+                    artist_id=artist1.id,
+                    album_id=album1.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample1.wav"
+                ),
+                Track(
+                    title="Urban Dreams",
+                    artist_id=artist1.id,
+                    album_id=album1.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample2.wav"
+                ),
+                Track(
+                    title="Flow State",
+                    artist_id=artist2.id,
+                    album_id=album2.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample3.wav"
+                ),
+                Track(
+                    title="Deep Focus",
+                    artist_id=artist2.id,
+                    album_id=album2.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample4.wav"
+                ),
+                Track(
+                    title="Midnight Jazz",
+                    artist_id=artist3.id,
+                    album_id=album3.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample5.wav"
+                ),
+                Track(
+                    title="Morning Coffee",
+                    artist_id=artist3.id,
+                    album_id=album3.id,
+                    duration_ms=3000,  # 3 seconds
+                    file_path="/static/audio/sample6.wav"
+                )
+            ]
+
+            for track in tracks:
+                db.session.add(track)
+            db.session.commit()
 
             # Sample User (needed for playlists)
             # In a real app, users would register, but we need one for sample playlists
@@ -158,13 +220,33 @@ def create_app(config_object=None):
             db.session.add(sample_user)
             db.session.commit() # Commit user to get ID
 
-            # Playlists (representing "For You")
-            playlist1 = Playlist(name="Chill Vibes", description="Relaxing tunes.", user_id=sample_user.id, tracks=[track5, track1])
-            playlist2 = Playlist(name="Weekly Mix", description="Your personalized mix.", user_id=sample_user.id, tracks=[track3, track6, track2])
-            playlist3 = Playlist(name="Focus Mode", description="Concentration music.", user_id=sample_user.id, tracks=[track4, track3])
-            db.session.add_all([playlist1, playlist2, playlist3])
+            # Create sample playlists with the new tracks
+            playlist1 = Playlist(
+                name="Chill Vibes",
+                description="Relaxing tunes for your evening.",
+                user_id=sample_user.id,
+                tracks=[tracks[4], tracks[0]]  # Midnight Jazz, Sunset Cruising
+            )
 
-            db.session.commit() # Final commit for tracks and playlists
-            print("Sample data added.")
+            playlist2 = Playlist(
+                name="Weekly Mix",
+                description="Your personalized mix of the week.",
+                user_id=sample_user.id,
+                tracks=[tracks[2], tracks[5], tracks[1]]  # Flow State, Morning Coffee, Urban Dreams
+            )
+
+            playlist3 = Playlist(
+                name="Focus Mode",
+                description="Music to help you concentrate.",
+                user_id=sample_user.id,
+                tracks=[tracks[3], tracks[2]]  # Deep Focus, Flow State
+            )
+
+            db.session.add(playlist1)
+            db.session.add(playlist2)
+            db.session.add(playlist3)
+            db.session.commit()
+
+            print("Added sample data...")
 
     return app
